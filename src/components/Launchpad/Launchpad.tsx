@@ -5,6 +5,8 @@ import "./Launchpad.css"
 import Button from "../common/Button"
 var heatmap = require("./heatmap.png");
 var distplot = require("./distplot.png")
+var regplot = require("./regplot.png")
+var resultPlot = require("./results.png")
 
 
 const Launchpad = () => {
@@ -17,7 +19,7 @@ const Launchpad = () => {
     const [submitSelectedTarget, setSubmitSelectedTarget] = useState(false);
     const [summary, setSummary] = useState();
     const [corr, setCorr] = useState();
-    const [results, setResults] = useState(null);
+    const [results, setResults] = useState();
 
     // TODO address e:any
     const onChangeHandler = (e: any) => {
@@ -156,6 +158,11 @@ const Launchpad = () => {
             {summary && !results &&
                 <>
                     <div className="row">
+                        <div className="col">
+                            <img src={regplot} className="chart" />
+                        </div>
+                    </div>
+                    <div className="row">
                         <div className="col col-2">
                             <div className="container">
                                 <div id="summary" className="summary-container" dangerouslySetInnerHTML={displaySummary()}>
@@ -185,6 +192,7 @@ const Launchpad = () => {
                 </>}
             {/* Results */}
             {results && showResults(results)}
+            {results && < img src={resultPlot} />}
 
         </>
     )

@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import pandas as pd
 from flask_cors import CORS
 import os
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
@@ -11,6 +11,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+from ml import *
 matplotlib.use('Agg')
 
 
@@ -41,7 +42,6 @@ def inspectData(arg):
     df = pd.read_csv(
         "./temp.csv", )
     df.columns = [i.strip() for i in df.columns]
-
     sns.heatmap(pd.DataFrame(round(df.corr(), 2)),
                 annot=True, cmap="RdBu", vmin=-1, vmax=1)
     plt.savefig("../src/components/Launchpad/heatmap.png",
@@ -53,9 +53,9 @@ def inspectData(arg):
     plt.clf()
     cols = [i for i in df.columns if i != arg]
     print(df[cols])
-    # sns.regplot(df.loc[[i for i in df.columns if i != arg]], df[arg])
-    # plt.savefig("../src/components/Launchpad/regplot.png",
-    #             facecolor="#212529")
+    sns.regplot(df[cols[0]], df[arg])
+    plt.savefig("../src/components/Launchpad/regplot.png",
+                facecolor="#212529")
     return jsonify({'corr': pd.DataFrame(round(df.corr(), 2)).to_html(), 'summary': pd.DataFrame(df[arg]).describe(include="all").to_html()})
 
 
@@ -82,10 +82,12 @@ def train(arg):
     # creates target feature
     y = newdf[arg]
     # create training and test set
+    x_train, x_test, y_train, y_test = split_data(X, y, test_size=0.33)
     x_train, x_test, y_train, y_test = train_test_split(
         X, y, test_size=0.33, random_state=323)
     # assign model and fit
-    model = RandomForestRegressor().fit(x_train, y_train)
+    model = RandomForestRegressor(
+        max_depth=5, n_estimators=500).fit(x_train, y_train)
     # make predictions
     preds = model.predict(x_test)
     # assign predicitions to new df
@@ -93,8 +95,12 @@ def train(arg):
     # assign true predictions to df for comparison
     predsDf["True"] = [i for i in y_test]
     train_results = model.predict(x_train)
+    # train_random_forest(newdf, x_train, y_train, x_test, y_test)
     plt.clf()
-    plt.scatter(train_results, y_train, cmap="RdBu")
+    plt.plot(np.array(train_results), 'b.', c=None)
+    print(len(train_results))
+    print(len(y_train))
+    plt.plot(np.array(y_train), 'r.')
     plt.savefig("../src/components/Launchpad/results.png",
                 facecolor="darkslategray")
     training_score = np.sqrt(mean_squared_error(train_results, y_train))
