@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import pandas as pd
 from flask_cors import CORS
 import os
-# from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
@@ -11,7 +11,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
-from ml import *
+import pickle
 matplotlib.use('Agg')
 
 
@@ -52,10 +52,10 @@ def inspectData(arg):
                 facecolor="#212529")
     plt.clf()
     cols = [i for i in df.columns if i != arg]
-    print(df[cols])
-    sns.regplot(df[cols[0]], df[arg])
-    plt.savefig("../src/components/Launchpad/regplot.png",
-                facecolor="#212529")
+    # print(df[cols])
+    # sns.regplot(df.loc[4], df[arg])
+    # plt.savefig("../src/components/Launchpad/regplot.png",
+    #             facecolor="#212529")
     return jsonify({'corr': pd.DataFrame(round(df.corr(), 2)).to_html(), 'summary': pd.DataFrame(df[arg]).describe(include="all").to_html()})
 
 
@@ -73,41 +73,54 @@ def train(arg):
     # remove any white space from colNames
     df.columns = [i.strip() for i in df.columns]
     # For linear regression we will need to select numeric dtype columns only for our model
-    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    # numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
     # filters DF based on dtypes defined above
-    newdf = df.select_dtypes(include=numerics)
+    # newdf = df.select_dtypes(include=numerics)
     # creates X dataset excluding target variable
-    cols = [i for i in newdf.columns if i != arg]
-    X = newdf[cols]
+    cols = [i for i in df.columns if i != arg]
+    X = df[cols]
     # creates target feature
-    y = newdf[arg]
+    y = df[arg]
     # create training and test set
-    x_train, x_test, y_train, y_test = split_data(X, y, test_size=0.33)
     x_train, x_test, y_train, y_test = train_test_split(
         X, y, test_size=0.33, random_state=323)
+    print(x_train)
     # assign model and fit
     model = RandomForestRegressor(
         max_depth=5, n_estimators=500).fit(x_train, y_train)
+    pickle.dump(model, open("./savedModel.sav", 'wb'))
     # make predictions
     preds = model.predict(x_test)
     # assign predicitions to new df
     predsDf = pd.DataFrame(preds, columns=["Predictions"])
     # assign true predictions to df for comparison
-    predsDf["True"] = [i for i in y_test]
+    predsDf["Truth"] = [i for i in y_test]
     train_results = model.predict(x_train)
-    # train_random_forest(newdf, x_train, y_train, x_test, y_test)
     plt.clf()
     plt.plot(np.array(train_results), 'b.', c=None)
-    print(len(train_results))
-    print(len(y_train))
     plt.plot(np.array(y_train), 'r.')
     plt.savefig("../src/components/Launchpad/results.png",
                 facecolor="darkslategray")
     training_score = np.sqrt(mean_squared_error(train_results, y_train))
     test_score = np.sqrt(mean_squared_error(y_test, preds))
-    print("Training Score: ", training_score)
-    print("Testing Score: ", test_score)
     return jsonify({"training_score": training_score, "test_score": test_score, "sample": predsDf.iloc[:10].to_json()})
+
+
+@api.route('/predict', methods=["POST"])
+def predict():
+    data = request.json
+    df = pd.read_csv("./temp.csv")
+    numOfColumns = df.shape[1]
+    # receives user provided values which match the expected shape of the trained model. Returns model prediction
+    file = open(b"./savedModel.sav", "rb")
+    loaded_model = pickle.load(file)
+    # Create a pandas series or np.array of the user values
+    X = data
+    print(X['userInputArray'])
+    result = loaded_model.predict(
+        pd.Series(X['userInputArray']))
+    # print(result)
+    return pd.DataFrame(result).to_json()
 
 
 if __name__ == '__main__':

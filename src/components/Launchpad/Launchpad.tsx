@@ -1,8 +1,10 @@
-import React, { useState, useEffect, forwardRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import Modal from '../common/Modal'
 import axios from "axios";
 import "./Launchpad.css"
 import Button from "../common/Button"
+import PredictInputs from '../PredictInputs';
+
 var heatmap = require("./heatmap.png");
 var distplot = require("./distplot.png")
 var regplot = require("./regplot.png")
@@ -133,6 +135,7 @@ const Launchpad = () => {
         return <><h2>Train Score: {results!.training_score}</h2> <h2>Test Score: {results!.test_score}</h2></>
     }
 
+
     return (
         <>
             {/* Upload CSV */}
@@ -192,7 +195,7 @@ const Launchpad = () => {
                 </>}
             {/* Results */}
             {results && showResults(results)}
-            {results && < img src={resultPlot} />}
+            {results && <><img src={resultPlot} alt="results scatter plot" /> <PredictInputs inputs={colNames.filter(col => col !== targetVariable)} /></>}
 
         </>
     )
